@@ -1,14 +1,25 @@
 <template>
   <div class="calendar">
-    <header class="calendar__header">{{today.format('MMMM YYYY')}}</header>
+    <header class="calendar__header">
+      <span
+          @click="currentMoment = currentMoment.clone().subtract(1, 'month')"
+          class="calendar__btn btn-prev-month"
+      >&lt;</span>
+      {{currentMoment.format('MMMM YYYY')}}
+      <span
+          @click="currentMoment = currentMoment.clone().add(1, 'month')"
+          class="calendar__btn btn-next-month"
+      >>
+      </span>
+    </header>
     <div v-for="day in weeks[0]" class="calendar__cell disabled">{{day.format('dd')}}</div>
     <template v-for="week in weeks" class="calendar__row">
       <div
           v-for="day in week"
           :class="[
               'calendar__cell',
-              day.isSame(today, 'month') ? 'active': 'disabled',
-              day.isSame(today, 'day') ? 'today' : 'day'
+              day.isSame(currentMoment, 'month') ? 'active': 'disabled',
+              day.isSame(moment(), 'day') ? 'today' : 'day'
           ]"
       >
         {{day.format('D')}}
@@ -18,17 +29,23 @@
 </template>
 
 <script setup>
-import {ref, onBeforeMount} from 'vue'
+import {ref, computed} from 'vue'
 import moment from "moment";
 
-const today = ref(moment());
-const weeks = []
+const currentMoment = ref(moment());
+const weeks = computed(() => getWeeksForMoment(currentMoment.value))
 
-onBeforeMount(() => {
+const getWeeksForMoment = (a) => {
   const numOfColumns = 7;
   const numOfRows = 6;
+  const currentMomentWeeks = [];
 
-  const monthFirstMonday = moment().startOf('month').weekday(1);
+  const monthFirstMonday = a.clone().startOf('month').weekday(1);
+
+  if (monthFirstMonday.date() < 8){
+    monthFirstMonday.subtract(1, 'week')
+  }
+
   const lastDayInCalendar = monthFirstMonday.clone().add((numOfColumns * numOfRows) - 1, 'days');
 
   let loopCurrentDay = monthFirstMonday.clone();
@@ -38,13 +55,16 @@ onBeforeMount(() => {
     loopCurrentWeek.push(loopCurrentDay.clone());
 
     if(loopCurrentWeek.length === numOfColumns){
-      weeks.push(loopCurrentWeek);
+      currentMomentWeeks.push(loopCurrentWeek);
       loopCurrentWeek = [];
     }
 
     loopCurrentDay = loopCurrentDay.add(1, 'days');
   }
-})
+
+  return currentMomentWeeks
+}
+
 </script>
 
 <style scoped lang="sass">
@@ -65,6 +85,12 @@ onBeforeMount(() => {
     padding: 20px
     text-align: center
     font-size: 24px
+
+.btn-prev-month
+  margin-right: 40px
+
+.btn-next-month
+  margin-left: 40px
 
 .active
   color: #fff
